@@ -222,6 +222,7 @@ execute_sql()
         rm "${2}"
     fi
     exit_if_error "${SQLPLUS_RC}" "Sql Execution Failed with status code ${SQLPLUS_RC}"
+
     log_info_leave
 }    
 
@@ -236,9 +237,9 @@ _print_log_header()
     log_level="${_log_levels[$in_level]}"
     log_level_set="${_loggers_level_map[$logger]}"
     echo -e "               ========================================================================="
-    echo -e "                                   SCRIPT_NAME :       ${script_name}.sh"
-    echo -e "                                     HOST_NAME :       $(machine)"
-    echo -e "                                    START_TIME :       $(date)"
+    echo -e "                                   SCRIPT_NAME :   ${PROGNAME}.sh"
+    echo -e "                                     HOST_NAME :   ${MACHINE}"
+    echo -e "                                    START_TIME :   $(date)"
     echo -e "               =========================================================================\n\n\n"
 }
 
@@ -257,8 +258,7 @@ log_footer()
 #
 atexit()
 {
-    find ~/ -type f -mmin +2 \( -name "${script_name}.START.*" -o -name "${script_name}.END.*" \) -exec rm -f '{}' \;
-    touch ~/"${script_name}".END."${JOB_STATUS}".$$
+
     echo -e "\n               ======================          at exit           =======================" >> ${LOG_FILE}
     echo -e "               Job Status=${JOB_STATUS}            " >> ${LOG_FILE}
 
@@ -267,6 +267,7 @@ atexit()
     echo -e "               Elapsed Time:          $((${ELAPSED_TIME} / 60)) minutes and $((${ELAPSED_TIME} % 60)) seconds" >> ${LOG_FILE}
     echo -e "               ==================================================" >> ${LOG_FILE} >> ${LOG_FILE}
     echo -e "               =========================================================================" >> ${LOG_FILE}
+
 }
 ################################################# MISC FUNCTIONS #######################################################
 #
@@ -297,6 +298,29 @@ wait_for_enter() {
     read -r -n1 -s -p "Press Enter to continue" </dev/tty
 }
 
+#
+# Control the set_log_level using file
+#
+debug_file_control() {
+    local file="/tmp/set_debug_flag"
+    if [ -f "$file" ]; then
+        local FLAG=$(cat "$file")
+        if [ "$FLAG" = "VERBOSE" -o "$FLAG" = "DEBUG" -o "$FLAG" = "INFO" -o "$FLAG" = "WARN" ]; then
+            echo $FLAG
+            set_log_level "$FLAG"
+            log_info "Default Log_Level set to:     $FLAG"
+        else
+            log_error "Not a valid DEBUG Level, set a valid level[ VERBOSE|DEBUG|INFO|WARN ] in /tmp/set_debug_flag"
+            exit 1
+        fi
+        rm -f "$file"
+    else
+        set_log_level INFO
+    fi
+}
+
 #################################################### END OF FUNCTIONS ##################################################
 
 __stdlib_init__
+
+#debug_file_control
